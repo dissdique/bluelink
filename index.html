@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+<title>Bluelink</title>
+<link rel="icon" href="https://github.com/dissdique.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 600px;
+    height: 600px;
+    background: #000;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  #app {
+    width: 600px;
+    height: 600px;
+    position: relative;
+    background: #000;
+  }
+  .screen { display: none; width: 100%; height: 100%; padding: 20px; }
+  .screen.active { display: block; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .title { font-size: 20px; letter-spacing: 2px; color: #4fd1ff; text-shadow: 0 0 8px rgba(79,209,255,0.6); }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .conn-ok { background: #4fffb0; box-shadow: 0 0 6px #4fffb0; }
+  .conn-bad { background: #ff5b5b; box-shadow: 0 0 6px #ff5b5b; }
+  .conn-wait { background: #ffd24f; box-shadow: 0 0 6px #ffd24f; }
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .tile {
+    border: 1px solid #2a2a2a;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+  }
+  .tile-label { font-size: 11px; color: #6a6a6a; letter-spacing: 1px; }
+  .tile-value { font-size: 22px; color: #fff; margin-top: 4px; }
+  .tile-value.good { color: #4fffb0; }
+  .tile-value.warn { color: #ffd24f; }
+  .tile-value.bad { color: #ff5b5b; }
+
+  .menu { list-style: none; }
+  .menu li {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 1px solid #2a2a2a;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: #b8b8b8;
+  }
+  .menu li.selected {
+    border-color: #4fd1ff;
+    color: #fff;
+    background: rgba(79,209,255,0.08);
+    text-shadow: 0 0 6px rgba(79,209,255,0.5);
+  }
+  .menu li .hint { float: right; color: #4a4a4a; font-size: 12px; }
+
+  .footer {
+    position: absolute;
+    bottom: 14px;
+    left: 20px;
+    right: 20px;
+    font-size: 11px;
+    color: #4a4a4a;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .toast {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #4fd1ff;
+    background: rgba(0,0,0,0.85);
+    color: #4fd1ff;
+    font-size: 13px;
+    letter-spacing: 1px;
+    display: none;
+  }
+
+  .settings-row { margin-bottom: 14px; }
+  .settings-row label { display: block; font-size: 11px; color: #6a6a6a; margin-bottom: 4px; letter-spacing: 1px; }
+  .settings-row .val { font-size: 15px; color: #fff; border: 1px solid #2a2a2a; padding: 8px 10px; word-break: break-all; }
+  .settings-row .val.selected { border-color: #4fd1ff; color: #4fd1ff; }
+
+  .center-msg { display: flex; align-items: center; justify-content: center; height: 70%; color: #4a4a4a; font-size: 14px; letter-spacing: 1px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- MAIN / STATUS SCREEN -->
+  <div class="screen active" id="screen-main">
+    <div class="header">
+      <div class="title">BLUELINK</div>
+      <div><span class="conn-dot conn-wait" id="conn-dot"></span><span id="conn-text" style="font-size:11px;color:#6a6a6a;">CHECKING</span></div>
+    </div>
+
+    <div class="tiles" id="tiles">
+      <div class="tile"><div class="tile-label">BATTERY</div><div class="tile-value" id="v-battery">--</div></div>
+      <div class="tile"><div class="tile-label">RANGE</div><div class="tile-value" id="v-range">--</div></div>
+      <div class="tile"><div class="tile-label">DOORS</div><div class="tile-value" id="v-doors">--</div></div>
+      <div class="tile"><div class="tile-label">CLIMATE</div><div class="tile-value" id="v-climate">--</div></div>
+    </div>
+
+    <ul class="menu" id="main-menu">
+      <li data-action="lock" class="selected">LOCK <span class="hint">SELECT</span></li>
+      <li data-action="unlock">UNLOCK <span class="hint">SELECT</span></li>
+      <li data-action="start">START ENGINE <span class="hint">SELECT</span></li>
+      <li data-action="stop">STOP ENGINE <span class="hint">SELECT</span></li>
+      <li data-action="refresh">REFRESH STATUS <span class="hint">SELECT</span></li>
+      <li data-action="settings">SETTINGS <span class="hint">SELECT</span></li>
+    </ul>
+
+    <div class="footer">
+      <span id="vin-label">VIN: ----</span>
+      <span id="updated-label">UPDATED: --</span>
+    </div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="screen" id="screen-settings">
+    <div class="header">
+      <div class="title">SETTINGS</div>
+    </div>
+    <div class="settings-row">
+      <label>PROXY URL</label>
+      <div class="val selected" id="set-url">not set</div>
+    </div>
+    <div class="settings-row">
+      <label>TOKEN</label>
+      <div class="val" id="set-token">not set</div>
+    </div>
+    <div class="settings-row">
+      <label>ACTION</label>
+      <div class="val" id="set-back">&lt; BACK</div>
+    </div>
+    <div class="center-msg">Edit values on paired phone page, or hold SELECT on a field to paste from clipboard.</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/*
+  Bluelink MRBD HUD
+  - D-pad navigation: ArrowUp/ArrowDown move selection, Enter/Select triggers action, ArrowLeft/Back goes back.
+  - Proxy URL + token stored in localStorage (this is a standalone GitHub Pages file, not a Claude artifact,
+    so localStorage is fine here).
+  - Talks to your Render-hosted bluelink-proxy: /status /lock /unlock /start /stop
+*/
+
+const STORAGE_URL_KEY = 'bluelink_proxy_url';
+const STORAGE_TOKEN_KEY = 'bluelink_proxy_token';
+
+// Easiest path on-glasses: just hardcode these two before you commit/deploy
+// instead of relying on clipboard paste through the settings screen.
+const DEFAULT_PROXY_URL = ''; // e.g. 'https://bluelink-proxy.onrender.com'
+const DEFAULT_PROXY_TOKEN = ''; // matches PROXY_TOKEN on the Render service
+
+let proxyUrl = localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_PROXY_URL;
+let proxyToken = localStorage.getItem(STORAGE_TOKEN_KEY) || DEFAULT_PROXY_TOKEN;
+
+let currentScreen = 'main';
+let mainMenuIndex = 0;
+let settingsIndex = 0;
+const mainMenuItems = document.querySelectorAll('#main-menu li');
+const settingsRows = ['set-url', 'set-token', 'set-back'];
+
+function showToast(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.style.display = 'none', ms);
+}
+
+function setConn(state) {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-text');
+  dot.className = 'conn-dot ' + (state === 'ok' ? 'conn-ok' : state === 'bad' ? 'conn-bad' : 'conn-wait');
+  txt.textContent = state === 'ok' ? 'LINKED' : state === 'bad' ? 'OFFLINE' : 'CHECKING';
+}
+
+async function apiCall(path, opts = {}) {
+  if (!proxyUrl) {
+    showToast('SET PROXY URL IN SETTINGS');
+    throw new Error('no proxy url');
+  }
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (proxyToken) headers['x-proxy-token'] = proxyToken;
+  const res = await fetch(proxyUrl.replace(/\/$/, '') + path, Object.assign({}, opts, { headers }));
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('HTTP ' + res.status + ': ' + body);
+  }
+  return res.json();
+}
+
+function classify(value, warnBelow, badBelow) {
+  if (value === null || value === undefined) return '';
+  if (value <= badBelow) return 'bad';
+  if (value <= warnBelow) return 'warn';
+  return 'good';
+}
+
+async function refreshStatus(force = false) {
+  setConn('wait');
+  try {
+    const s = await apiCall('/status' + (force ? '?force=true' : ''));
+    setConn('ok');
+    renderStatus(s);
+    document.getElementById('updated-label').textContent = 'UPDATED: ' + new Date().toLocaleTimeString();
+  } catch (err) {
+    setConn('bad');
+    showToast('STATUS FAILED: ' + err.message);
+  }
+}
+
+function renderStatus(s) {
+  // bluelinky's parsed status shape varies by brand/region; read defensively.
+  const evStatus = s.evStatus || {};
+  const battery = evStatus.batteryStatus ?? s.battery ?? null;
+  const range = (evStatus.drvDistance && evStatus.drvDistance[0] && evStatus.drvDistance[0].rangeByFuel)
+    ? evStatus.drvDistance[0].rangeByFuel.totalAvailableRange?.value
+    : (s.range ?? null);
+  const doorLock = s.doorLock ?? s.doorsLocked;
+  const climate = s.airCtrlOn ?? s.climate ?? false;
+
+  const battEl = document.getElementById('v-battery');
+  battEl.textContent = battery !== null ? battery + '%' : '--';
+  battEl.className = 'tile-value ' + classify(battery, 40, 15);
+
+  document.getElementById('v-range').textContent = range !== null ? range + ' MI' : '--';
+  document.getElementById('v-doors').textContent = doorLock === true ? 'LOCKED' : doorLock === false ? 'UNLOCKED' : '--';
+  document.getElementById('v-doors').className = 'tile-value ' + (doorLock === true ? 'good' : doorLock === false ? 'warn' : '');
+  document.getElementById('v-climate').textContent = climate ? 'ON' : 'OFF';
+
+  if (s.vin) document.getElementById('vin-label').textContent = 'VIN: ' + String(s.vin).slice(-6);
+}
+
+async function doAction(action) {
+  try {
+    if (action === 'lock') {
+      showToast('LOCKING...');
+      await apiCall('/lock', { method: 'POST' });
+      showToast('LOCKED');
+      refreshStatus();
+    } else if (action === 'unlock') {
+      showToast('UNLOCKING...');
+      await apiCall('/unlock', { method: 'POST' });
+      showToast('UNLOCKED');
+      refreshStatus();
+    } else if (action === 'start') {
+      showToast('STARTING ENGINE...');
+      await apiCall('/start', {
+        method: 'POST',
+        body: JSON.stringify({ duration: 10, temperature: '72', defrost: false, unit: 'F' })
+      });
+      showToast('ENGINE STARTED');
+      refreshStatus();
+    } else if (action === 'stop') {
+      showToast('STOPPING ENGINE...');
+      await apiCall('/stop', { method: 'POST' });
+      showToast('ENGINE STOPPED');
+      refreshStatus();
+    } else if (action === 'refresh') {
+      showToast('REFRESHING...');
+      refreshStatus(true);
+    } else if (action === 'settings') {
+      goToSettings();
+    }
+  } catch (err) {
+    showToast('FAILED: ' + err.message);
+  }
+}
+
+function updateMainMenuSelection() {
+  mainMenuItems.forEach((el, i) => el.classList.toggle('selected', i === mainMenuIndex));
+}
+
+function goToSettings() {
+  document.getElementById('screen-main').classList.remove('active');
+  document.getElementById('screen-settings').classList.add('active');
+  currentScreen = 'settings';
+  settingsIndex = 0;
+  document.getElementById('set-url').textContent = proxyUrl || 'not set';
+  document.getElementById('set-token').textContent = proxyToken ? '••••••••' : 'not set';
+  updateSettingsSelection();
+}
+
+function goToMain() {
+  document.getElementById('screen-settings').classList.remove('active');
+  document.getElementById('screen-main').classList.add('active');
+  currentScreen = 'main';
+}
+
+function updateSettingsSelection() {
+  settingsRows.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('selected', i === settingsIndex);
+  });
+}
+
+async function pasteIntoField(id, storageKey) {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) { showToast('CLIPBOARD EMPTY'); return; }
+    localStorage.setItem(storageKey, text);
+    if (storageKey === STORAGE_URL_KEY) proxyUrl = text;
+    if (storageKey === STORAGE_TOKEN_KEY) proxyToken = text;
+    document.getElementById(id).textContent = storageKey === STORAGE_TOKEN_KEY ? '••••••••' : text;
+    showToast('SAVED');
+  } catch (err) {
+    showToast('CLIPBOARD BLOCKED — use phone page');
+  }
+}
+
+// D-pad / keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (currentScreen === 'main') {
+    if (e.key === 'ArrowDown') {
+      mainMenuIndex = (mainMenuIndex + 1) % mainMenuItems.length;
+      updateMainMenuSelection();
+    } else if (e.key === 'ArrowUp') {
+      mainMenuIndex = (mainMenuIndex - 1 + mainMenuItems.length) % mainMenuItems.length;
+      updateMainMenuSelection();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const action = mainMenuItems[mainMenuIndex].dataset.action;
+      doAction(action);
+    }
+  } else if (currentScreen === 'settings') {
+    if (e.key === 'ArrowDown') {
+      settingsIndex = (settingsIndex + 1) % settingsRows.length;
+      updateSettingsSelection();
+    } else if (e.key === 'ArrowUp') {
+      settingsIndex = (settingsIndex - 1 + settingsRows.length) % settingsRows.length;
+      updateSettingsSelection();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const id = settingsRows[settingsIndex];
+      if (id === 'set-back') goToMain();
+      else if (id === 'set-url') pasteIntoField('set-url', STORAGE_URL_KEY);
+      else if (id === 'set-token') pasteIntoField('set-token', STORAGE_TOKEN_KEY);
+    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'Escape') {
+      goToMain();
+    }
+  }
+});
+
+// Also allow tapping menu items directly (touch/companion fallback)
+mainMenuItems.forEach((el, i) => {
+  el.addEventListener('click', () => {
+    mainMenuIndex = i;
+    updateMainMenuSelection();
+    doAction(el.dataset.action);
+  });
+});
+document.getElementById('set-back').addEventListener('click', goToMain);
+document.getElementById('set-url').addEventListener('click', () => pasteIntoField('set-url', STORAGE_URL_KEY));
+document.getElementById('set-token').addEventListener('click', () => pasteIntoField('set-token', STORAGE_TOKEN_KEY));
+
+// init
+updateMainMenuSelection();
+if (proxyUrl) {
+  refreshStatus();
+} else {
+  setConn('bad');
+  showToast('SET PROXY URL IN SETTINGS');
+}
+</script>
+</body>
+</html>
