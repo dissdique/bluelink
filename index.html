@@ -1,8 +1,8 @@
 
 <!DOCTYPE html>
-<!-- saved from url=(0049)file:///C:/Users/mike_/Downloads/index%20(3).html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
 <title>Bluelink</title>
 <link rel="icon" href="https://github.com/dissdique.png">
@@ -107,10 +107,10 @@
 <div id="app">
 
   <!-- MAIN / STATUS SCREEN -->
-  <div class="screen" id="screen-main">
+  <div class="screen active" id="screen-main">
     <div class="header">
       <div class="title">BLUELINK</div>
-      <div><span class="conn-dot conn-bad" id="conn-dot"></span><span id="conn-text" style="font-size:11px;color:#6a6a6a;">OFFLINE</span></div>
+      <div><span class="conn-dot conn-wait" id="conn-dot"></span><span id="conn-text" style="font-size:11px;color:#6a6a6a;">CHECKING</span></div>
     </div>
 
     <div class="tiles" id="tiles">
@@ -121,12 +121,12 @@
     </div>
 
     <ul class="menu" id="main-menu">
-      <li data-action="lock" class="">LOCK <span class="hint">SELECT</span></li>
+      <li data-action="lock" class="selected">LOCK <span class="hint">SELECT</span></li>
       <li data-action="unlock">UNLOCK <span class="hint">SELECT</span></li>
       <li data-action="start">START ENGINE <span class="hint">SELECT</span></li>
       <li data-action="stop">STOP ENGINE <span class="hint">SELECT</span></li>
       <li data-action="refresh">REFRESH STATUS <span class="hint">SELECT</span></li>
-      <li data-action="settings" class="selected">SETTINGS <span class="hint">SELECT</span></li>
+      <li data-action="settings">SETTINGS <span class="hint">SELECT</span></li>
     </ul>
 
     <div class="footer">
@@ -136,17 +136,17 @@
   </div>
 
   <!-- SETTINGS SCREEN -->
-  <div class="screen active" id="screen-settings">
+  <div class="screen" id="screen-settings">
     <div class="header">
       <div class="title">SETTINGS</div>
     </div>
     <div class="settings-row">
       <label>PROXY URL</label>
-      <div class="val selected" id="set-url">https://bluelink-proxy.onrender.com</div>
+      <div class="val selected" id="set-url">not set</div>
     </div>
     <div class="settings-row">
       <label>TOKEN</label>
-      <div class="val" id="set-token">••••••••</div>
+      <div class="val" id="set-token">not set</div>
     </div>
     <div class="settings-row">
       <label>ACTION</label>
@@ -155,7 +155,7 @@
     <div class="center-msg">Edit values on paired phone page, or hold SELECT on a field to paste from clipboard.</div>
   </div>
 
-  <div class="toast" id="toast" style="display: none;">SAVED</div>
+  <div class="toast" id="toast"></div>
 </div>
 
 <script>
@@ -172,8 +172,8 @@ const STORAGE_TOKEN_KEY = 'bluelink_proxy_token';
 
 // Easiest path on-glasses: just hardcode these two before you commit/deploy
 // instead of relying on clipboard paste through the settings screen.
-const DEFAULT_PROXY_URL = ''; // e.g. 'https://bluelink-proxy.onrender.com'
-const DEFAULT_PROXY_TOKEN = ''; // matches PROXY_TOKEN on the Render service
+const DEFAULT_PROXY_URL = 'https://bluelink-proxy.onrender.com';
+const DEFAULT_PROXY_TOKEN = 'Bluelink1218!';
 
 let proxyUrl = localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_PROXY_URL;
 let proxyToken = localStorage.getItem(STORAGE_TOKEN_KEY) || DEFAULT_PROXY_TOKEN;
@@ -402,6 +402,5 @@ if (proxyUrl) {
   showToast('SET PROXY URL IN SETTINGS');
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
