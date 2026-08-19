@@ -113,8 +113,8 @@
     </div>
 
     <div class="tiles" id="tiles">
-      <div class="tile"><div class="tile-label">BATTERY</div><div class="tile-value" id="v-battery">--</div></div>
       <div class="tile"><div class="tile-label">RANGE</div><div class="tile-value" id="v-range">--</div></div>
+      <div class="tile"><div class="tile-label">ENGINE</div><div class="tile-value" id="v-engine">--</div></div>
       <div class="tile"><div class="tile-label">DOORS</div><div class="tile-value" id="v-doors">--</div></div>
       <div class="tile"><div class="tile-label">CLIMATE</div><div class="tile-value" id="v-climate">--</div></div>
     </div>
@@ -234,25 +234,43 @@ async function refreshStatus(force = false) {
 }
 
 function renderStatus(s) {
-  // bluelinky's parsed status shape varies by brand/region; read defensively.
-  const evStatus = s.evStatus || {};
-  const battery = evStatus.batteryStatus ?? s.battery ?? null;
-  const range = (evStatus.drvDistance && evStatus.drvDistance[0] && evStatus.drvDistance[0].rangeByFuel)
-    ? evStatus.drvDistance[0].rangeByFuel.totalAvailableRange?.value
-    : (s.range ?? null);
-  const doorLock = s.doorLock ?? s.doorsLocked;
-  const climate = s.airCtrlOn ?? s.climate ?? false;
+  // Matches the actual bluelinky response for Mike's (gas) Elantra:
+  // { chassis: { hoodOpen, trunkOpen, locked, openDoors: {frontLeft,frontRight,backLeft,backRight}, tirePressureWarningLamp: {...} },
+  //   climate: { active, steeringwheelHeat, sideMirrorHeat, rearWindowHeat, defrost, temperatureSetpoint, temperatureUnit },
+  //   engine: { ignition, accessory, range },
+  //   lastupdate }
+  const chassis = s.chassis || {};
+  const climate = s.climate || {};
+  const engine = s.engine || {};
 
-  const battEl = document.getElementById('v-battery');
-  battEl.textContent = battery !== null ? battery + '%' : '--';
-  battEl.className = 'tile-value ' + classify(battery, 40, 15);
+  const range = engine.range ?? null;
+  const rangeEl = document.getElementById('v-range');
+  rangeEl.textContent = range !== null ? range + ' MI' : '--';
+  rangeEl.className = 'tile-value ' + classify(range, 75, 30);
 
-  document.getElementById('v-range').textContent = range !== null ? range + ' MI' : '--';
-  document.getElementById('v-doors').textContent = doorLock === true ? 'LOCKED' : doorLock === false ? 'UNLOCKED' : '--';
-  document.getElementById('v-doors').className = 'tile-value ' + (doorLock === true ? 'good' : doorLock === false ? 'warn' : '');
-  document.getElementById('v-climate').textContent = climate ? 'ON' : 'OFF';
+  const ignitionOn = engine.ignition === true;
+  const engineEl = document.getElementById('v-engine');
+  engineEl.textContent = ignitionOn ? 'RUNNING' : 'OFF';
+  engineEl.className = 'tile-value ' + (ignitionOn ? 'warn' : 'good');
+
+  const doors = chassis.openDoors || {};
+  const anyDoorOpen = Object.values(doors).some(v => v === true);
+  const doorsEl = document.getElementById('v-doors');
+  if (chassis.locked === true && !anyDoorOpen) {
+    doorsEl.textContent = 'LOCKED';
+    doorsEl.className = 'tile-value good';
+  } else if (anyDoorOpen) {
+    doorsEl.textContent = 'OPEN';
+    doorsEl.className = 'tile-value bad';
+  } else {
+    doorsEl.textContent = 'UNLOCKED';
+    doorsEl.className = 'tile-value warn';
+  }
+
+  document.getElementById('v-climate').textContent = climate.active ? 'ON' : 'OFF';
 
   if (s.vin) document.getElementById('vin-label').textContent = 'VIN: ' + String(s.vin).slice(-6);
+  else if (s.lastupdate) document.getElementById('vin-label').textContent = 'SYNC: ' + s.lastupdate.slice(0, 16).replace('T', ' ');
 }
 
 async function doAction(action) {
