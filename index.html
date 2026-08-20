@@ -174,8 +174,10 @@ const STORAGE_TOKEN_KEY = 'bluelink_proxy_token';
 const DEFAULT_PROXY_URL = 'https://bluelink-proxy.onrender.com';
 const DEFAULT_PROXY_TOKEN = 'Bluelink1218!';
 
-let proxyUrl = localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_PROXY_URL;
-let proxyToken = localStorage.getItem(STORAGE_TOKEN_KEY) || DEFAULT_PROXY_TOKEN;
+let proxyUrl = DEFAULT_PROXY_URL;
+let proxyToken = DEFAULT_PROXY_TOKEN;
+localStorage.removeItem(STORAGE_URL_KEY);
+localStorage.removeItem(STORAGE_TOKEN_KEY);
 
 let currentScreen = 'main';
 let mainMenuIndex = 0;
