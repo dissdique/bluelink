@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,55 +100,13 @@
   .settings-row .val.selected { border-color: #4fd1ff; color: #4fd1ff; }
 
   .center-msg { display: flex; align-items: center; justify-content: center; height: 70%; color: #4a4a4a; font-size: 14px; letter-spacing: 1px; text-align: center; }
-
-  #screen-lock.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
-  .pin-box {
-    width: 40px;
-    height: 52px;
-    border: 1px solid #2a2a2a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    color: #6a6a6a;
-  }
-  .pin-box.active {
-    border-color: #4fd1ff;
-    color: #4fd1ff;
-    box-shadow: 0 0 8px rgba(79,209,255,0.4);
-  }
-  .pin-box.filled { color: #fff; }
-  .pin-shake { animation: pinshake 0.3s; }
-  @keyframes pinshake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    75% { transform: translateX(8px); }
-  }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- LOCK / PIN SCREEN -->
-  <div class="screen active" id="screen-lock">
-    <div class="header">
-      <div class="title">BLUELINK</div>
-    </div>
-    <div class="center-msg" style="height:20%;">ENTER PIN</div>
-    <div id="pin-dots" style="display:flex; justify-content:center; gap:16px; margin-bottom:30px;">
-      <div class="pin-box" data-i="0">_</div>
-      <div class="pin-box" data-i="1">_</div>
-      <div class="pin-box" data-i="2">_</div>
-      <div class="pin-box" data-i="3">_</div>
-    </div>
-    <div style="text-align:center; color:#4a4a4a; font-size:11px; letter-spacing:1px;">
-      UP/DOWN CHANGE DIGIT &nbsp;&bull;&nbsp; RIGHT NEXT &nbsp;&bull;&nbsp; ENTER SUBMIT
-    </div>
-  </div>
-
   <!-- MAIN / STATUS SCREEN -->
-  <div class="screen" id="screen-main">
+  <div class="screen active" id="screen-main">
     <div class="header">
       <div class="title">BLUELINK</div>
       <div><span class="conn-dot conn-wait" id="conn-dot"></span><span id="conn-text" style="font-size:11px;color:#6a6a6a;">CHECKING</span></div>
@@ -217,19 +174,10 @@ const STORAGE_TOKEN_KEY = 'bluelink_proxy_token';
 const DEFAULT_PROXY_URL = 'https://bluelink-proxy.onrender.com';
 const DEFAULT_PROXY_TOKEN = 'Bluelink1218!';
 
-// Heads up: this PIN only gates casual use of the on-screen UI.
-// It does NOT protect the proxy itself — the token above is still visible
-// to anyone who views this page's source, PIN or not. Change this to
-// whatever 4 digits you want before deploying.
-const APP_PIN = '1218';
-
-let pinDigits = [null, null, null, null];
-let pinIndex = 0;
-
 let proxyUrl = localStorage.getItem(STORAGE_URL_KEY) || DEFAULT_PROXY_URL;
 let proxyToken = localStorage.getItem(STORAGE_TOKEN_KEY) || DEFAULT_PROXY_TOKEN;
 
-let currentScreen = 'lock';
+let currentScreen = 'main';
 let mainMenuIndex = 0;
 let settingsIndex = 0;
 const mainMenuItems = document.querySelectorAll('#main-menu li');
@@ -401,88 +349,9 @@ async function pasteIntoField(id, storageKey) {
   }
 }
 
-function renderPinBoxes() {
-  document.querySelectorAll('.pin-box').forEach((el, i) => {
-    el.classList.toggle('active', i === pinIndex);
-    if (pinDigits[i] !== null) {
-      el.textContent = pinDigits[i];
-      el.classList.add('filled');
-    } else {
-      el.textContent = '_';
-      el.classList.remove('filled');
-    }
-  });
-}
-
-function pinChangeDigit(delta) {
-  const current = pinDigits[pinIndex] === null ? 0 : pinDigits[pinIndex];
-  pinDigits[pinIndex] = (current + delta + 10) % 10;
-  renderPinBoxes();
-}
-
-function pinMove(delta) {
-  pinIndex = Math.max(0, Math.min(3, pinIndex + delta));
-  renderPinBoxes();
-}
-
-function pinSubmit() {
-  if (pinDigits.some(d => d === null)) {
-    shakePin();
-    return;
-  }
-  const entered = pinDigits.join('');
-  if (entered === APP_PIN) {
-    unlockApp();
-  } else {
-    shakePin();
-    pinDigits = [null, null, null, null];
-    pinIndex = 0;
-    renderPinBoxes();
-  }
-}
-
-function shakePin() {
-  const dots = document.getElementById('pin-dots');
-  dots.classList.remove('pin-shake');
-  void dots.offsetWidth; // restart animation
-  dots.classList.add('pin-shake');
-  showToast('WRONG PIN');
-}
-
-function unlockApp() {
-  document.getElementById('screen-lock').classList.remove('active');
-  document.getElementById('screen-main').classList.add('active');
-  currentScreen = 'main';
-  updateMainMenuSelection();
-  if (proxyUrl) {
-    refreshStatus();
-  } else {
-    setConn('bad');
-    showToast('SET PROXY URL IN SETTINGS');
-  }
-}
-
 // D-pad / keyboard navigation
 document.addEventListener('keydown', (e) => {
-  if (currentScreen === 'lock') {
-    if (e.key === 'ArrowUp') {
-      pinChangeDigit(1);
-    } else if (e.key === 'ArrowDown') {
-      pinChangeDigit(-1);
-    } else if (e.key === 'ArrowRight') {
-      pinMove(1);
-    } else if (e.key === 'ArrowLeft') {
-      pinMove(-1);
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      pinSubmit();
-    } else if (e.key >= '0' && e.key <= '9') {
-      // allow direct digit typing too, in case a paired keyboard is used
-      pinDigits[pinIndex] = parseInt(e.key, 10);
-      renderPinBoxes();
-      if (pinIndex < 3) pinMove(1);
-      else pinSubmit();
-    }
-  } else if (currentScreen === 'main') {
+  if (currentScreen === 'main') {
     if (e.key === 'ArrowDown') {
       mainMenuIndex = (mainMenuIndex + 1) % mainMenuItems.length;
       updateMainMenuSelection();
@@ -523,15 +392,14 @@ document.getElementById('set-back').addEventListener('click', goToMain);
 document.getElementById('set-url').addEventListener('click', () => pasteIntoField('set-url', STORAGE_URL_KEY));
 document.getElementById('set-token').addEventListener('click', () => pasteIntoField('set-token', STORAGE_TOKEN_KEY));
 
-document.querySelectorAll('.pin-box').forEach((el, i) => {
-  el.addEventListener('click', () => {
-    pinIndex = i;
-    renderPinBoxes();
-  });
-});
-
 // init
-renderPinBoxes();
+updateMainMenuSelection();
+if (proxyUrl) {
+  refreshStatus();
+} else {
+  setConn('bad');
+  showToast('SET PROXY URL IN SETTINGS');
+}
 </script>
 </body>
 </html>
