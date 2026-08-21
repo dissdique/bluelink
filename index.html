@@ -167,6 +167,7 @@
       <li data-action="duration">DURATION: <span id="duration-value">20</span> MIN <span class="hint" id="duration-hint">SELECT</span></li>
       <li data-action="start_summer">SUMMER START <span class="hint">SELECT</span></li>
       <li data-action="start_winter">WINTER START <span class="hint">SELECT</span></li>
+      <li data-action="start_plain">PLAIN START <span class="hint">SELECT</span></li>
       <li data-action="stop">STOP ENGINE <span class="hint">SELECT</span></li>
       <li data-action="refresh">REFRESH STATUS <span class="hint">SELECT</span></li>
       <li data-action="settings">SETTINGS <span class="hint">SELECT</span></li>
@@ -384,6 +385,14 @@ async function doAction(action) {
         body: JSON.stringify({ duration: remoteDuration, temperature: 82, defrost: true, heating: true, airCtrl: true })
       });
       showToast('HEAT ON, DEFROST ON');
+      refreshStatus();
+    } else if (action === 'start_plain') {
+      showToast('STARTING...');
+      await apiCall('/start', {
+        method: 'POST',
+        body: JSON.stringify({ duration: remoteDuration, temperature: 72, defrost: false, heating: false, airCtrl: false })
+      });
+      showToast('ENGINE STARTED, NO CLIMATE');
       refreshStatus();
     } else if (action === 'stop') {
       showToast('STOPPING ENGINE...');
