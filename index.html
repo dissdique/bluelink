@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -232,9 +231,9 @@ const settingsRows = ['set-url', 'set-token', 'set-back'];
 
 // Remote start duration (minutes). Fixed presets, cycled via D-pad on a dedicated screen, persisted locally.
 const STORAGE_DURATION_KEY = 'bluelink_duration_min';
-const DURATION_PRESETS = [10, 20, 30];
+const DURATION_PRESETS = [5, 8, 10]; // Hyundai remote start hard-caps at 10 min per command
 const savedDuration = parseInt(localStorage.getItem(STORAGE_DURATION_KEY), 10);
-let durationIndex = DURATION_PRESETS.includes(savedDuration) ? DURATION_PRESETS.indexOf(savedDuration) : 1; // default 20
+let durationIndex = DURATION_PRESETS.includes(savedDuration) ? DURATION_PRESETS.indexOf(savedDuration) : 2; // default 10 (max)
 let remoteDuration = DURATION_PRESETS[durationIndex];
 
 function renderDuration() {
@@ -374,7 +373,7 @@ async function doAction(action) {
       showToast('SUMMER START...');
       await apiCall('/start', {
         method: 'POST',
-        body: JSON.stringify({ duration: remoteDuration, temperature: '60', defrost: false, heatedFeatures: false, unit: 'F' })
+        body: JSON.stringify({ duration: remoteDuration, temperature: 60, defrost: false, heating: false, airCtrl: true })
       });
       showToast('AC ON, COOLING DOWN');
       refreshStatus();
@@ -382,7 +381,7 @@ async function doAction(action) {
       showToast('WINTER START...');
       await apiCall('/start', {
         method: 'POST',
-        body: JSON.stringify({ duration: remoteDuration, temperature: '82', defrost: true, heatedFeatures: true, unit: 'F' })
+        body: JSON.stringify({ duration: remoteDuration, temperature: 82, defrost: true, heating: true, airCtrl: true })
       });
       showToast('HEAT ON, DEFROST ON');
       refreshStatus();
