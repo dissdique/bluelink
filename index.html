@@ -155,7 +155,8 @@
     </div>
 
     <ul class="menu" id="main-menu">
-      <li data-action="lock" class="selected">LOCK <span class="hint">SELECT</span></li>
+      <li data-action="vehicle" class="selected">VEHICLE: <span id="vehicle-value">MIKE'S CAR</span> <span class="hint">SELECT</span></li>
+      <li data-action="lock">LOCK <span class="hint">SELECT</span></li>
       <li data-action="unlock">UNLOCK <span class="hint">SELECT</span></li>
       <li data-action="duration">DURATION: <span id="duration-value">20</span> MIN <span class="hint" id="duration-hint">SELECT</span></li>
       <li data-action="start_summer">SUMMER START <span class="hint">SELECT</span></li>
@@ -250,6 +251,29 @@ function setConn(state) {
   txt.textContent = state === 'ok' ? 'LINKED' : state === 'bad' ? 'OFFLINE' : 'CHECKING';
 }
 
+// Active vehicle selection. '1' = Mike's car (default), '2' = wife's car.
+const STORAGE_VEHICLE_KEY = 'bluelink_active_vehicle';
+const VEHICLE_LABELS = { '1': "MIKE'S CAR", '2': "WIFE'S CAR" };
+let activeVehicle = localStorage.getItem(STORAGE_VEHICLE_KEY) === '2' ? '2' : '1';
+
+function withVehicleParam(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  return path + sep + 'vehicle=' + activeVehicle;
+}
+
+function renderVehicle() {
+  document.getElementById('vehicle-value').textContent = VEHICLE_LABELS[activeVehicle];
+}
+renderVehicle();
+
+function toggleVehicle() {
+  activeVehicle = activeVehicle === '1' ? '2' : '1';
+  localStorage.setItem(STORAGE_VEHICLE_KEY, activeVehicle);
+  renderVehicle();
+  showToast(VEHICLE_LABELS[activeVehicle] + ' SELECTED');
+  refreshStatus();
+}
+
 async function apiCall(path, opts = {}) {
   if (!proxyUrl) {
     showToast('SET PROXY URL IN SETTINGS');
@@ -257,7 +281,7 @@ async function apiCall(path, opts = {}) {
   }
   const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
   if (proxyToken) headers['x-proxy-token'] = proxyToken;
-  const res = await fetch(proxyUrl.replace(/\/$/, '') + path, Object.assign({}, opts, { headers }));
+  const res = await fetch(proxyUrl.replace(/\/$/, '') + withVehicleParam(path), Object.assign({}, opts, { headers }));
   if (!res.ok) {
     const body = await res.text();
     throw new Error('HTTP ' + res.status + ': ' + body);
@@ -327,7 +351,9 @@ function renderStatus(s) {
 
 async function doAction(action) {
   try {
-    if (action === 'lock') {
+    if (action === 'vehicle') {
+      toggleVehicle();
+    } else if (action === 'lock') {
       showToast('LOCKING...');
       await apiCall('/lock', { method: 'POST' });
       showToast('LOCKED');
