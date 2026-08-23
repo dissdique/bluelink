@@ -374,7 +374,7 @@ async function doAction(action) {
       showToast('SUMMER START...');
       await apiCall('/start', {
         method: 'POST',
-        body: JSON.stringify({ duration: remoteDuration, temperature: 60, defrost: false, heating: false, airCtrl: true })
+        body: JSON.stringify({ duration: remoteDuration, temperature: 62, defrost: false, heating: false, airCtrl: true })
       });
       showToast('AC ON, COOLING DOWN');
       refreshStatus();
@@ -382,7 +382,7 @@ async function doAction(action) {
       showToast('WINTER START...');
       await apiCall('/start', {
         method: 'POST',
-        body: JSON.stringify({ duration: remoteDuration, temperature: 82, defrost: true, heating: true, airCtrl: true })
+        body: JSON.stringify({ duration: remoteDuration, temperature: 74, defrost: true, heating: true, airCtrl: true })
       });
       showToast('HEAT ON, DEFROST ON');
       refreshStatus();
